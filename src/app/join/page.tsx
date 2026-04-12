@@ -1,10 +1,10 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function JoinPage() {
+function JoinPageContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -117,6 +117,7 @@ export default function JoinPage() {
             </p>
 
             <button
+              type="button"
               onClick={handleJoinRequest}
               disabled={loading || message === "Zahtjev je već poslan."}
               className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-semibold disabled:opacity-60"
@@ -133,5 +134,22 @@ export default function JoinPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-black text-white">
+          <div className="w-full max-w-md rounded-2xl bg-zinc-900 p-6 shadow-xl">
+            <h1 className="text-3xl font-bold">Gaža</h1>
+            <p className="mt-4 text-zinc-300">Učitavanje...</p>
+          </div>
+        </main>
+      }
+    >
+      <JoinPageContent />
+    </Suspense>
   );
 }
