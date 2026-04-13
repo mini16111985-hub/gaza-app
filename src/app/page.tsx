@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import InstallAppPrompt from "@/app/components/InstallAppPrompt";
 
 type AuthMode = "login" | "signup";
 type RoleType = "admin" | "member" | "";
@@ -999,7 +1000,7 @@ export default function Home() {
   if (userEmail) {
     return (
       <main className="min-h-screen bg-black text-white">
-        <div className="mx-auto w-full max-w-5xl p-4 md:p-6">
+        <div className="mx-auto w-full max-w-5xl px-3 py-4 md:p-6">
           <div className="rounded-2xl bg-zinc-900 p-5 shadow-xl">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
@@ -1073,7 +1074,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="mb-3 grid grid-cols-7 gap-2">
+                    <div className="mb-3 grid grid-cols-7 gap-1 md:gap-2">
                       {weekDays.map((day) => (
                         <div
                           key={day}
@@ -1084,7 +1085,7 @@ export default function Home() {
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-7 gap-2">
+                    <div className="grid grid-cols-7 gap-1 md:gap-2">
                       {calendarDays.map((day) => {
                         const dayKey = formatDateLocal(day);
                         const dayEvents = eventsByDate.get(dayKey) ?? [];
@@ -1106,7 +1107,7 @@ export default function Home() {
                             key={dayKey}
                             type="button"
                             onClick={() => setSelectedDate(dayKey)}
-                            className={`min-h-[74px] rounded-xl border p-2 text-left transition ${
+                            className={`min-h-[62px] md:min-h-[74px] rounded-lg md:rounded-xl border p-1.5 md:p-2 text-left transition ${
                               isSelected
                                 ? "border-blue-500 bg-zinc-700"
                                 : "border-zinc-700 bg-zinc-900 hover:bg-zinc-800"
@@ -1722,6 +1723,7 @@ export default function Home() {
             {message && <p className="mt-4 text-sm text-zinc-300">{message}</p>}
           </div>
         </div>
+        <InstallAppPrompt />
       </main>
     );
   }
@@ -1830,6 +1832,8 @@ export default function Home() {
           <p className="mt-4 text-center text-sm text-zinc-300">{message}</p>
         )}
       </div>
+
+      <InstallAppPrompt />
     </main>
   );
 }
