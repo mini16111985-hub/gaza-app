@@ -1001,11 +1001,11 @@ export default function Home() {
     return (
       <main className="min-h-screen bg-black text-white">
         <div className="mx-auto w-full max-w-5xl px-3 py-4 md:p-6">
-          <div className="rounded-2xl bg-zinc-900 p-5 shadow-xl">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
+          <div className="min-w-0 rounded-2xl bg-zinc-900 p-4 shadow-xl md:p-5">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <h1 className="text-3xl font-bold">Gaža</h1>
-                <p className="mt-2 text-sm text-zinc-300">
+                <p className="mt-2 break-all text-sm text-zinc-300">
                   Prijavljen korisnik: {userEmail}
                 </p>
                 {profile?.full_name && (
@@ -1025,7 +1025,7 @@ export default function Home() {
                 type="button"
                 onClick={handleLogout}
                 disabled={loading}
-                className="rounded-lg bg-red-600 px-4 py-2 font-semibold disabled:opacity-60"
+                className="w-full rounded-lg bg-red-600 px-4 py-2 font-semibold disabled:opacity-60 sm:w-auto"
               >
                 {loading ? "Odjava..." : "Odjava"}
               </button>
@@ -1034,10 +1034,11 @@ export default function Home() {
             {myBand ? (
               <>
                 <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
-                  <div className="rounded-xl border border-zinc-700 bg-zinc-800 p-5">
-                    <div className="mb-4 flex items-center justify-between">
-                      <h2 className="text-xl font-semibold">Kalendar</h2>
-                      <div className="flex items-center gap-2">
+                  <div className="min-w-0 w-full overflow-hidden rounded-xl border border-zinc-700 bg-zinc-800 p-3 md:p-5">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <h2 className="text-2xl font-semibold">Kalendar</h2>
+
+                      <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
                         <button
                           type="button"
                           onClick={() =>
@@ -1049,13 +1050,15 @@ export default function Home() {
                               )
                             )
                           }
-                          className="rounded-lg bg-zinc-700 px-3 py-1 text-sm"
+                          className="h-11 w-11 rounded-lg bg-zinc-700 text-base"
                         >
                           ←
                         </button>
-                        <p className="min-w-[150px] text-center text-sm font-semibold capitalize">
+
+                        <p className="min-w-0 truncate text-center text-base font-semibold capitalize md:text-lg">
                           {getMonthName(calendarMonth)}
                         </p>
+
                         <button
                           type="button"
                           onClick={() =>
@@ -1067,7 +1070,7 @@ export default function Home() {
                               )
                             )
                           }
-                          className="rounded-lg bg-zinc-700 px-3 py-1 text-sm"
+                          className="h-11 w-11 rounded-lg bg-zinc-700 text-base"
                         >
                           →
                         </button>
@@ -1078,7 +1081,7 @@ export default function Home() {
                       {weekDays.map((day) => (
                         <div
                           key={day}
-                          className="text-center text-xs font-semibold uppercase tracking-wide text-zinc-500"
+                          className="text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500 md:text-xs"
                         >
                           {day}
                         </div>
@@ -1107,15 +1110,15 @@ export default function Home() {
                             key={dayKey}
                             type="button"
                             onClick={() => setSelectedDate(dayKey)}
-                            className={`min-h-[62px] md:min-h-[74px] rounded-lg md:rounded-xl border p-1.5 md:p-2 text-left transition ${
+                            className={`min-w-0 aspect-square rounded-lg border p-1.5 text-left transition md:rounded-xl md:p-2 ${
                               isSelected
                                 ? "border-blue-500 bg-zinc-700"
                                 : "border-zinc-700 bg-zinc-900 hover:bg-zinc-800"
                             } ${!isCurrentMonth ? "opacity-45" : ""}`}
                           >
-                            <div className="flex items-start justify-between">
+                            <div className="flex items-start justify-between gap-1">
                               <span
-                                className={`text-sm font-semibold ${
+                                className={`text-sm font-semibold md:text-base ${
                                   isToday ? "text-blue-400" : "text-white"
                                 }`}
                               >
@@ -1123,13 +1126,13 @@ export default function Home() {
                               </span>
 
                               {dayEvents.length > 1 && (
-                                <span className="rounded-full bg-zinc-700 px-1.5 py-0.5 text-[10px] font-bold">
+                                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-zinc-700 px-1 text-[10px] font-bold">
                                   {dayEvents.length}
                                 </span>
                               )}
                             </div>
 
-                            <div className="mt-3 flex flex-wrap gap-1">
+                            <div className="mt-1 flex flex-wrap gap-1">
                               {hasGig && (
                                 <span className="h-2 w-2 rounded-full bg-blue-500" />
                               )}
@@ -1142,7 +1145,7 @@ export default function Home() {
                       })}
                     </div>
 
-                    <div className="mt-4 flex items-center gap-4 text-xs text-zinc-400">
+                    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-zinc-400">
                       <div className="flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
                         <span>Gaža</span>
@@ -1154,7 +1157,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-zinc-700 bg-zinc-800 p-5">
+                  <div className="min-w-0 rounded-xl border border-zinc-700 bg-zinc-800 p-5">
                     <h2 className="text-xl font-semibold">Odabrani datum</h2>
                     <p className="mt-2 text-sm text-zinc-400">{selectedDate}</p>
 
@@ -1175,10 +1178,10 @@ export default function Home() {
                               key={event.id}
                               className="rounded-lg bg-zinc-900 p-3"
                             >
-                              <div className="flex items-center justify-between gap-3">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <p className="font-semibold">{event.title}</p>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <span
                                     className={`rounded-full px-2 py-1 text-xs font-semibold ${
                                       event.event_type === "gig"
@@ -1261,7 +1264,7 @@ export default function Home() {
                                     : "Još nije označeno"}
                                 </p>
 
-                                <div className="mt-3 flex gap-2">
+                                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -1315,7 +1318,7 @@ export default function Home() {
                                     {attendance.map((item) => (
                                       <div
                                         key={item.id}
-                                        className="flex items-center justify-between rounded-lg bg-zinc-800 px-3 py-2"
+                                        className="flex flex-col gap-2 rounded-lg bg-zinc-800 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                                       >
                                         <div>
                                           <p className="text-sm font-semibold">
@@ -1328,7 +1331,7 @@ export default function Home() {
                                         </div>
 
                                         <span
-                                          className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                          className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${
                                             item.attendance_status === "coming"
                                               ? "bg-green-600/30 text-green-300"
                                               : "bg-red-600/30 text-red-300"
@@ -1512,7 +1515,7 @@ export default function Home() {
                         {requests.map((req) => (
                           <div
                             key={req.id}
-                            className="flex items-center justify-between rounded-lg bg-zinc-900 p-3"
+                            className="flex flex-col gap-3 rounded-lg bg-zinc-900 p-3 sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div>
                               <p className="font-semibold">
@@ -1564,7 +1567,7 @@ export default function Home() {
                         return (
                           <div
                             key={member.id}
-                            className="flex items-center justify-between rounded-lg bg-zinc-900 p-3"
+                            className="flex flex-col gap-3 rounded-lg bg-zinc-900 p-3 sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div>
                               <p className="font-semibold">
@@ -1583,7 +1586,7 @@ export default function Home() {
                                 type="button"
                                 onClick={() => void handleRemoveMember(member)}
                                 disabled={loading}
-                                className="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold disabled:opacity-60"
+                                className="w-fit rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold disabled:opacity-60"
                               >
                                 Makni
                               </button>
@@ -1729,9 +1732,9 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black text-white">
+    <main className="flex min-h-screen items-center justify-center bg-black text-white">
       <div className="w-full max-w-sm rounded-2xl bg-zinc-900 p-6 shadow-xl">
-        <h1 className="mb-6 text-3xl font-bold text-center">Gaža</h1>
+        <h1 className="mb-6 text-center text-3xl font-bold">Gaža</h1>
 
         <div className="mb-6 flex rounded-lg bg-zinc-800 p-1">
           <button
