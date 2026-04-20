@@ -56,6 +56,7 @@ type EventItem = {
   end_time: string | null;
   venue_name: string | null;
   city: string | null;
+  agreed_amount: number | null;
 };
 
 type AttendanceItem = {
@@ -209,6 +210,7 @@ export default function Home() {
   const [newEventEndTime, setNewEventEndTime] = useState("");
   const [newEventVenue, setNewEventVenue] = useState("");
   const [newEventCity, setNewEventCity] = useState("");
+  const [newEventAgreedAmount, setNewEventAgreedAmount] = useState("");
 
   useEffect(() => {
     const checkSession = async () => {
@@ -378,7 +380,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from("events")
       .select(
-        "id, event_type, status, title, event_date, start_time, end_time, venue_name, city"
+       "id, event_type, status, title, event_date, start_time, end_time, venue_name, city, agreed_amount"
       )
       .eq("band_id", bandId)
       .order("event_date", { ascending: true })
@@ -813,6 +815,10 @@ export default function Home() {
         end_time: newEventEndTime || null,
         venue_name: newEventVenue || null,
         city: newEventCity || null,
+        agreed_amount:
+          newEventType === "gig" && newEventAgreedAmount
+            ? Number(newEventAgreedAmount)
+            : null,
         created_by: userId,
       });
 
@@ -830,6 +836,7 @@ export default function Home() {
       setNewEventEndTime("");
       setNewEventVenue("");
       setNewEventCity("");
+      setNewEventAgreedAmount("");
 
       await loadEvents(myBand.id);
       setSelectedDate(createdDate);
@@ -1682,6 +1689,21 @@ export default function Home() {
                         />
                       </div>
                     </div>
+
+                    {newEventType === "gig" && (
+                      <div>
+                        <label className="mb-2 block text-sm">Dogovoreni iznos (€)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2"
+                          value={newEventAgreedAmount}
+                          onChange={(e) => setNewEventAgreedAmount(e.target.value)}
+                          placeholder="Npr. 500.00"
+                        />
+                      </div>
+                    )}
 
                     <button
                       type="button"
