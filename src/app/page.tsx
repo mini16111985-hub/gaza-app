@@ -59,6 +59,14 @@ type EventItem = {
   agreed_amount: number | null;
 };
 
+type EventSong = {
+  id: string;
+  event_id: string;
+  title: string;
+  created_by: string | null;
+  created_at: string;
+};
+
 type AttendanceItem = {
   id: string;
   event_id: string;
@@ -187,6 +195,12 @@ export default function Home() {
   const [attendanceByEvent, setAttendanceByEvent] = useState<
     Record<string, AttendanceItem[]>
   >({});
+
+  const [songsByEvent, setSongsByEvent] = useState<Record<string, EventSong[]>>(
+  {}
+);
+const [openSongsEventId, setOpenSongsEventId] = useState<string | null>(null);
+const [newSongTitle, setNewSongTitle] = useState("");
 
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [newTransactionType, setNewTransactionType] = useState<
@@ -376,6 +390,35 @@ export default function Home() {
     setAttendanceByEvent(grouped);
   };
 
+    const loadSongsForEvents = async (eventList: EventItem[]) => {
+    if (eventList.length === 0) {
+      setSongsByEvent({});
+      return;
+    }
+
+    const eventIds = eventList.map((e) => e.id);
+
+    const { data, error } = await supabase
+      .from("event_songs")
+      .select("id, event_id, title, created_by, created_at")
+      .in("event_id", eventIds)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      setSongsByEvent({});
+      return;
+    }
+
+    const grouped: Record<string, EventSong[]> = {};
+
+    for (const row of (data ?? []) as EventSong[]) {
+      if (!grouped[row.event_id]) grouped[row.event_id] = [];
+      grouped[row.event_id].push(row);
+    }
+
+    setSongsByEvent(grouped);
+  };
+
   const loadEvents = async (bandId: string) => {
     const { data, error } = await supabase
       .from("events")
@@ -389,12 +432,16 @@ export default function Home() {
     if (error) {
       setEvents([]);
       setAttendanceByEvent({});
+      setSongsByEvent({});
+      setOpenSongsEventId(null);
+      setNewSongTitle("");
       return;
     }
 
     const eventList = (data ?? []) as EventItem[];
     setEvents(eventList);
     await loadAttendanceForEvents(eventList);
+    await loadSongsForEvents(eventList);
   };
 
   const loadTransactions = async (bandId: string) => {
@@ -408,7 +455,9 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      setTransactions([]);
+      setEvents([]);
+      setAttendanceByEvent({});
+      setSongsByEvent({});
       return;
     }
 
@@ -551,6 +600,9 @@ export default function Home() {
       setRequests([]);
       setMembers([]);
       setEvents([]);
+      setSongsByEvent({});
+      setOpenSongsEventId(null);
+      setNewSongTitle("");
       setAttendanceByEvent({});
       setTransactions([]);
       setBandName("");
@@ -846,6 +898,41 @@ export default function Home() {
     }
   };
 
+    const handleAddSong = async (eventId: string) => {
+      if (!myBand || !userId || myRole !== "admin") {
+        setMessage("Samo admin može dodavati pjesme.");
+        return;
+      }
+
+      if (!newSongTitle.trim()) {
+        setMessage("Upiši naziv pjesme.");
+        return;
+      }
+
+      setLoading(true);
+      setMessage("");
+
+      try {
+        const { error } = await supabase.from("event_songs").insert({
+          event_id: eventId,
+          title: newSongTitle.trim(),
+          created_by: userId,
+        });
+
+        if (error) {
+          setMessage("Greška kod spremanja pjesme: " + error.message);
+          return;
+        }
+
+        setNewSongTitle("");
+        setOpenSongsEventId(eventId);
+        await loadEvents(myBand.id);
+        setMessage("Pjesma je dodana.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
   const handleCreateTransaction = async () => {
     if (!myBand || !userId || myRole !== "admin") {
       setMessage("Samo admin može unositi financije.");
@@ -894,6 +981,34 @@ export default function Home() {
 
       await loadTransactions(myBand.id);
       setMessage("Transakcija je uspješno spremljena.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+    const handleDeleteSong = async (songId: string, eventId: string) => {
+    if (!myBand || myRole !== "admin") {
+      setMessage("Samo admin može brisati pjesme.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase
+        .from("event_songs")
+        .delete()
+        .eq("id", songId);
+
+      if (error) {
+        setMessage("Greška kod brisanja pjesme: " + error.message);
+        return;
+      }
+
+      setOpenSongsEventId(eventId);
+      await loadEvents(myBand.id);
+      setMessage("Pjesma je obrisana.");
     } finally {
       setLoading(false);
     }
@@ -1308,8 +1423,73 @@ export default function Home() {
                                   >
                                     Ne dolazim
                                   </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setOpenSongsEventId((prev) => (prev === event.id ? null : event.id))
+                                    }
+                                    className="rounded-lg bg-zinc-700 px-3 py-2 text-sm font-semibold"
+                                  >
+                                    Pjesme
+                                  </button>
                                 </div>
                               </div>
+
+                              {openSongsEventId === event.id && (
+                              <div className="mt-4 rounded-lg bg-zinc-800 p-3">
+                                <p className="text-xs uppercase tracking-wide text-zinc-500">Pjesme</p>
+
+                                {(songsByEvent[event.id] ?? []).length === 0 ? (
+                                  <p className="mt-2 text-sm text-zinc-400">
+                                    Još nema dodanih pjesama.
+                                  </p>
+                                ) : (
+                                  <div className="mt-3 space-y-2">
+                                    {(songsByEvent[event.id] ?? []).map((song, index) => (
+                                      <div
+                                        key={song.id}
+                                        className="flex flex-col gap-2 rounded-lg bg-zinc-900 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                                      >
+                                        <p className="text-sm font-medium">
+                                          {index + 1}. {song.title}
+                                        </p>
+
+                                        {myRole === "admin" && (
+                                          <button
+                                            type="button"
+                                            onClick={() => void handleDeleteSong(song.id, event.id)}
+                                            disabled={loading}
+                                            className="w-fit rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold disabled:opacity-60"
+                                          >
+                                            Obriši
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {myRole === "admin" && (
+                                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                                    <input
+                                      type="text"
+                                      value={openSongsEventId === event.id ? newSongTitle : ""}
+                                      onChange={(e) => setNewSongTitle(e.target.value)}
+                                      placeholder="Naziv pjesme"
+                                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleAddSong(event.id)}
+                                      disabled={loading}
+                                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                                    >
+                                      Dodaj
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
                               <div className="mt-4">
                                 <p className="text-xs uppercase tracking-wide text-zinc-500">
