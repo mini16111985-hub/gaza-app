@@ -32,30 +32,61 @@ function JoinPageContent() {
 
       setUserId(session.user.id);
 
-      const { data, error } = await supabase
-        .from("bands")
-        .select("id, name")
-        .eq("invite_token", token)
-        .single();
+      const { data, error } = await supabase.rpc(
+        "get_band_by_invite_token",
+        {
+          p_token: token,
+        }
+      );
 
-      if (error || !data) {
+      const band = data?.[0] ?? null;
+
+      if (error || !band) {
         setMessage("Bend nije pronađen.");
         return;
       }
 
-      setBandId(data.id);
-      setBandName(data.name);
+      setBandId(band.id);
+      setBandName(band.name);
+
+      const { data: existingMember } = await supabase
+        .from("band_members")
+        .select("id, status")
+        .eq("band_id", band.id)
+        .eq("user_id", session.user.id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (existingMember) {
+        setMessage("Već si član ovog benda.");
+        return;
+      }
 
       const { data: existingRequest } = await supabase
         .from("band_join_requests")
         .select("id, status")
-        .eq("band_id", data.id)
+        .eq("band_id", band.id)
         .eq("user_id", session.user.id)
         .maybeSingle();
 
       if (existingRequest) {
-        setMessage("Zahtjev je već poslan.");
+        if (existingRequest.status === "pending") {
+          setMessage("Zahtjev je već poslan.");
+          return;
+        }
+
+        if (existingRequest.status === "approved") {
+          setMessage("Već si prihvaćen u bend.");
+          return;
+        }
+
+        if (existingRequest.status === "rejected") {
+          setMessage("Tvoj prethodni zahtjev je odbijen.");
+          return;
+        }
       }
+
+      setMessage("");
     };
 
     void init();
@@ -71,6 +102,19 @@ function JoinPageContent() {
     setMessage("");
 
     try {
+      const { data: existingMember } = await supabase
+        .from("band_members")
+        .select("id, status")
+        .eq("band_id", bandId)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (existingMember) {
+        setMessage("Već si član ovog benda.");
+        return;
+      }
+
       const { data: existingRequest } = await supabase
         .from("band_join_requests")
         .select("id, status")
@@ -79,8 +123,20 @@ function JoinPageContent() {
         .maybeSingle();
 
       if (existingRequest) {
-        setMessage("Zahtjev je već poslan.");
-        return;
+        if (existingRequest.status === "pending") {
+          setMessage("Zahtjev je već poslan.");
+          return;
+        }
+
+        if (existingRequest.status === "approved") {
+          setMessage("Već si prihvaćen u bend.");
+          return;
+        }
+
+        if (existingRequest.status === "rejected") {
+          setMessage("Tvoj prethodni zahtjev je odbijen.");
+          return;
+        }
       }
 
       const { error } = await supabase.from("band_join_requests").insert({
@@ -100,8 +156,17 @@ function JoinPageContent() {
     }
   };
 
+  const isBlocked =
+    message === "Zahtjev je već poslan." ||
+    message === "Već si član ovog benda." ||
+    message === "Već si prihvaćen u bend." ||
+    message === "Tvoj prethodni zahtjev je odbijen." ||
+    message === "Moraš biti prijavljen da pošalješ zahtjev." ||
+    message === "Bend nije pronađen." ||
+    message === "Nedostaje token.";
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black text-white">
+    <main className="flex min-h-screen items-center justify-center bg-black text-white">
       <div className="w-full max-w-md rounded-2xl bg-zinc-900 p-6 shadow-xl">
         <h1 className="text-3xl font-bold">Gaža</h1>
 
@@ -119,7 +184,7 @@ function JoinPageContent() {
             <button
               type="button"
               onClick={handleJoinRequest}
-              disabled={loading || message === "Zahtjev je već poslan."}
+              disabled={loading || isBlocked}
               className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-semibold disabled:opacity-60"
             >
               {loading ? "Šaljem..." : "Pošalji zahtjev"}
@@ -141,7 +206,7 @@ export default function JoinPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center bg-black text-white">
+        <main className="flex min-h-screen items-center justify-center bg-black text-white">
           <div className="w-full max-w-md rounded-2xl bg-zinc-900 p-6 shadow-xl">
             <h1 className="text-3xl font-bold">Gaža</h1>
             <p className="mt-4 text-zinc-300">Učitavanje...</p>
