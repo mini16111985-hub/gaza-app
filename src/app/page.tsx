@@ -454,12 +454,10 @@ const [newSongTitle, setNewSongTitle] = useState("");
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false });
 
-    if (error) {
-      setEvents([]);
-      setAttendanceByEvent({});
-      setSongsByEvent({});
-      return;
-    }
+      if (error) {
+        setTransactions([]);
+        return;
+      }
 
     setTransactions((data ?? []) as FinancialTransaction[]);
   };
@@ -491,6 +489,9 @@ const [newSongTitle, setNewSongTitle] = useState("");
       setMembers([]);
       setEvents([]);
       setAttendanceByEvent({});
+      setSongsByEvent({});
+      setOpenSongsEventId(null);
+      setNewSongTitle("");
       setTransactions([]);
       return;
     }
@@ -682,81 +683,29 @@ const [newSongTitle, setNewSongTitle] = useState("");
     }
   };
 
-  const handleApprove = async (request: JoinRequest) => {
-    if (!myBand || !userId || myRole !== "admin") return;
+ const handleApprove = async (request: JoinRequest) => {
+  if (!myBand || !userId || myRole !== "admin") return;
 
-    setLoading(true);
-    setMessage("");
+  setLoading(true);
+  setMessage("");
 
-    try {
-      const { data: existingMember, error: existingMemberError } = await supabase
-        .from("band_members")
-        .select("id, status")
-        .eq("band_id", myBand.id)
-        .eq("user_id", request.user_id)
-        .maybeSingle();
+  try {
+    const { error } = await supabase.rpc("approve_band_join_request", {
+      p_request_id: request.id,
+    });
 
-      if (existingMemberError) {
-        setMessage("Greška kod provjere člana: " + existingMemberError.message);
-        return;
-      }
-
-      if (existingMember) {
-        const { error: updateMemberError } = await supabase
-          .from("band_members")
-          .update({
-            role: "member",
-            status: "active",
-            joined_at: new Date().toISOString(),
-          })
-          .eq("id", existingMember.id);
-
-        if (updateMemberError) {
-          setMessage(
-            "Greška kod ažuriranja člana: " + updateMemberError.message
-          );
-          return;
-        }
-      } else {
-        const { error: memberInsertError } = await supabase
-          .from("band_members")
-          .insert({
-            band_id: myBand.id,
-            user_id: request.user_id,
-            role: "member",
-            status: "active",
-            joined_at: new Date().toISOString(),
-          });
-
-        if (memberInsertError) {
-          setMessage("Greška kod prihvaćanja člana: " + memberInsertError.message);
-          return;
-        }
-      }
-
-      const { error: requestError } = await supabase
-        .from("band_join_requests")
-        .update({
-          status: "approved",
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: userId,
-        })
-        .eq("id", request.id);
-
-      if (requestError) {
-        setMessage(
-          "Član je dodan, ali zahtjev nije ažuriran: " + requestError.message
-        );
-        return;
-      }
-
-      await loadRequests(myBand.id);
-      await loadMembers(myBand.id);
-      setMessage("Zahtjev je prihvaćen.");
-    } finally {
-      setLoading(false);
+    if (error) {
+      setMessage("Greška kod prihvaćanja člana: " + error.message);
+      return;
     }
-  };
+
+    await loadRequests(myBand.id);
+    await loadMembers(myBand.id);
+    setMessage("Zahtjev je prihvaćen.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleReject = async (request: JoinRequest) => {
     if (!myBand || !userId || myRole !== "admin") return;
