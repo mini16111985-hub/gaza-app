@@ -593,10 +593,7 @@ export default function Home() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/update-password`
-            : "https://gaza-app-swart.vercel.app/update-password",
+        redirectTo: "https://gaza-app-swart.vercel.app/update-password",
       });
 
       if (error) {
