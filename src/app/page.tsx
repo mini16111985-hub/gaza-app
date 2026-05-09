@@ -197,10 +197,10 @@ export default function Home() {
   >({});
 
   const [songsByEvent, setSongsByEvent] = useState<Record<string, EventSong[]>>(
-  {}
-);
-const [openSongsEventId, setOpenSongsEventId] = useState<string | null>(null);
-const [newSongTitle, setNewSongTitle] = useState("");
+    {}
+  );
+  const [openSongsEventId, setOpenSongsEventId] = useState<string | null>(null);
+  const [newSongTitle, setNewSongTitle] = useState("");
 
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [newTransactionType, setNewTransactionType] = useState<
@@ -390,7 +390,7 @@ const [newSongTitle, setNewSongTitle] = useState("");
     setAttendanceByEvent(grouped);
   };
 
-    const loadSongsForEvents = async (eventList: EventItem[]) => {
+  const loadSongsForEvents = async (eventList: EventItem[]) => {
     if (eventList.length === 0) {
       setSongsByEvent({});
       return;
@@ -423,7 +423,7 @@ const [newSongTitle, setNewSongTitle] = useState("");
     const { data, error } = await supabase
       .from("events")
       .select(
-       "id, event_type, status, title, event_date, start_time, end_time, venue_name, city, agreed_amount"
+        "id, event_type, status, title, event_date, start_time, end_time, venue_name, city, agreed_amount"
       )
       .eq("band_id", bandId)
       .order("event_date", { ascending: true })
@@ -454,10 +454,10 @@ const [newSongTitle, setNewSongTitle] = useState("");
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false });
 
-      if (error) {
-        setTransactions([]);
-        return;
-      }
+    if (error) {
+      setTransactions([]);
+      return;
+    }
 
     setTransactions((data ?? []) as FinancialTransaction[]);
   };
@@ -582,6 +582,34 @@ const [newSongTitle, setNewSongTitle] = useState("");
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setMessage("Upiši email za reset lozinke.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/update-password`
+            : "https://gaza-app-swart.vercel.app/update-password",
+      });
+
+      if (error) {
+        setMessage("Greška kod slanja reset emaila: " + error.message);
+        return;
+      }
+
+      setMessage("Poslan je email za reset lozinke.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     setLoading(true);
     setMessage("");
@@ -683,29 +711,29 @@ const [newSongTitle, setNewSongTitle] = useState("");
     }
   };
 
- const handleApprove = async (request: JoinRequest) => {
-  if (!myBand || !userId || myRole !== "admin") return;
+  const handleApprove = async (request: JoinRequest) => {
+    if (!myBand || !userId || myRole !== "admin") return;
 
-  setLoading(true);
-  setMessage("");
+    setLoading(true);
+    setMessage("");
 
-  try {
-    const { error } = await supabase.rpc("approve_band_join_request", {
-      p_request_id: request.id,
-    });
+    try {
+      const { error } = await supabase.rpc("approve_band_join_request", {
+        p_request_id: request.id,
+      });
 
-    if (error) {
-      setMessage("Greška kod prihvaćanja člana: " + error.message);
-      return;
+      if (error) {
+        setMessage("Greška kod prihvaćanja člana: " + error.message);
+        return;
+      }
+
+      await loadRequests(myBand.id);
+      await loadMembers(myBand.id);
+      setMessage("Zahtjev je prihvaćen.");
+    } finally {
+      setLoading(false);
     }
-
-    await loadRequests(myBand.id);
-    await loadMembers(myBand.id);
-    setMessage("Zahtjev je prihvaćen.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleReject = async (request: JoinRequest) => {
     if (!myBand || !userId || myRole !== "admin") return;
@@ -847,40 +875,40 @@ const [newSongTitle, setNewSongTitle] = useState("");
     }
   };
 
-    const handleAddSong = async (eventId: string) => {
-      if (!myBand || !userId || myRole !== "admin") {
-        setMessage("Samo admin može dodavati pjesme.");
+  const handleAddSong = async (eventId: string) => {
+    if (!myBand || !userId || myRole !== "admin") {
+      setMessage("Samo admin može dodavati pjesme.");
+      return;
+    }
+
+    if (!newSongTitle.trim()) {
+      setMessage("Upiši naziv pjesme.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.from("event_songs").insert({
+        event_id: eventId,
+        title: newSongTitle.trim(),
+        created_by: userId,
+      });
+
+      if (error) {
+        setMessage("Greška kod spremanja pjesme: " + error.message);
         return;
       }
 
-      if (!newSongTitle.trim()) {
-        setMessage("Upiši naziv pjesme.");
-        return;
-      }
-
-      setLoading(true);
-      setMessage("");
-
-      try {
-        const { error } = await supabase.from("event_songs").insert({
-          event_id: eventId,
-          title: newSongTitle.trim(),
-          created_by: userId,
-        });
-
-        if (error) {
-          setMessage("Greška kod spremanja pjesme: " + error.message);
-          return;
-        }
-
-        setNewSongTitle("");
-        setOpenSongsEventId(eventId);
-        await loadEvents(myBand.id);
-        setMessage("Pjesma je dodana.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      setNewSongTitle("");
+      setOpenSongsEventId(eventId);
+      await loadEvents(myBand.id);
+      setMessage("Pjesma je dodana.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateTransaction = async () => {
     if (!myBand || !userId || myRole !== "admin") {
@@ -935,7 +963,7 @@ const [newSongTitle, setNewSongTitle] = useState("");
     }
   };
 
-    const handleDeleteSong = async (songId: string, eventId: string) => {
+  const handleDeleteSong = async (songId: string, eventId: string) => {
     if (!myBand || myRole !== "admin") {
       setMessage("Samo admin može brisati pjesme.");
       return;
@@ -1375,7 +1403,9 @@ const [newSongTitle, setNewSongTitle] = useState("");
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      setOpenSongsEventId((prev) => (prev === event.id ? null : event.id))
+                                      setOpenSongsEventId((prev) =>
+                                        prev === event.id ? null : event.id
+                                      )
                                     }
                                     className="rounded-lg bg-zinc-700 px-3 py-2 text-sm font-semibold"
                                   >
@@ -1385,60 +1415,77 @@ const [newSongTitle, setNewSongTitle] = useState("");
                               </div>
 
                               {openSongsEventId === event.id && (
-                              <div className="mt-4 rounded-lg bg-zinc-800 p-3">
-                                <p className="text-xs uppercase tracking-wide text-zinc-500">Pjesme</p>
-
-                                {(songsByEvent[event.id] ?? []).length === 0 ? (
-                                  <p className="mt-2 text-sm text-zinc-400">
-                                    Još nema dodanih pjesama.
+                                <div className="mt-4 rounded-lg bg-zinc-800 p-3">
+                                  <p className="text-xs uppercase tracking-wide text-zinc-500">
+                                    Pjesme
                                   </p>
-                                ) : (
-                                  <div className="mt-3 space-y-2">
-                                    {(songsByEvent[event.id] ?? []).map((song, index) => (
-                                      <div
-                                        key={song.id}
-                                        className="flex flex-col gap-2 rounded-lg bg-zinc-900 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                                      >
-                                        <p className="text-sm font-medium">
-                                          {index + 1}. {song.title}
-                                        </p>
 
-                                        {myRole === "admin" && (
-                                          <button
-                                            type="button"
-                                            onClick={() => void handleDeleteSong(song.id, event.id)}
-                                            disabled={loading}
-                                            className="w-fit rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold disabled:opacity-60"
+                                  {(songsByEvent[event.id] ?? []).length === 0 ? (
+                                    <p className="mt-2 text-sm text-zinc-400">
+                                      Još nema dodanih pjesama.
+                                    </p>
+                                  ) : (
+                                    <div className="mt-3 space-y-2">
+                                      {(songsByEvent[event.id] ?? []).map(
+                                        (song, index) => (
+                                          <div
+                                            key={song.id}
+                                            className="flex flex-col gap-2 rounded-lg bg-zinc-900 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                                           >
-                                            Obriši
-                                          </button>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                            <p className="text-sm font-medium">
+                                              {index + 1}. {song.title}
+                                            </p>
 
-                                {myRole === "admin" && (
-                                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                                    <input
-                                      type="text"
-                                      value={openSongsEventId === event.id ? newSongTitle : ""}
-                                      onChange={(e) => setNewSongTitle(e.target.value)}
-                                      placeholder="Naziv pjesme"
-                                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => void handleAddSong(event.id)}
-                                      disabled={loading}
-                                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
-                                    >
-                                      Dodaj
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                                            {myRole === "admin" && (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  void handleDeleteSong(
+                                                    song.id,
+                                                    event.id
+                                                  )
+                                                }
+                                                disabled={loading}
+                                                className="w-fit rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold disabled:opacity-60"
+                                              >
+                                                Obriši
+                                              </button>
+                                            )}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {myRole === "admin" && (
+                                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                                      <input
+                                        type="text"
+                                        value={
+                                          openSongsEventId === event.id
+                                            ? newSongTitle
+                                            : ""
+                                        }
+                                        onChange={(e) =>
+                                          setNewSongTitle(e.target.value)
+                                        }
+                                        placeholder="Naziv pjesme"
+                                        className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          void handleAddSong(event.id)
+                                        }
+                                        disabled={loading}
+                                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                                      >
+                                        Dodaj
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               <div className="mt-4">
                                 <p className="text-xs uppercase tracking-wide text-zinc-500">
@@ -1821,14 +1868,18 @@ const [newSongTitle, setNewSongTitle] = useState("");
 
                     {newEventType === "gig" && (
                       <div>
-                        <label className="mb-2 block text-sm">Dogovoreni iznos (€)</label>
+                        <label className="mb-2 block text-sm">
+                          Dogovoreni iznos (€)
+                        </label>
                         <input
                           type="number"
                           step="0.01"
                           min="0"
                           className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2"
                           value={newEventAgreedAmount}
-                          onChange={(e) => setNewEventAgreedAmount(e.target.value)}
+                          onChange={(e) =>
+                            setNewEventAgreedAmount(e.target.value)
+                          }
                           placeholder="Npr. 500.00"
                         />
                       </div>
@@ -1972,14 +2023,25 @@ const [newSongTitle, setNewSongTitle] = useState("");
             {loading ? "Spremam..." : "Registriraj se"}
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full rounded-lg bg-green-600 px-4 py-2 font-semibold disabled:opacity-60"
-          >
-            {loading ? "Prijava..." : "Prijavi se"}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full rounded-lg bg-green-600 px-4 py-2 font-semibold disabled:opacity-60"
+            >
+              {loading ? "Prijava..." : "Prijavi se"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleForgotPassword()}
+              disabled={loading}
+              className="mt-3 w-full rounded-lg bg-zinc-700 px-4 py-2 font-semibold disabled:opacity-60"
+            >
+              Zaboravljena lozinka
+            </button>
+          </>
         )}
 
         {message && (
