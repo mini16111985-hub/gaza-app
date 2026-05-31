@@ -57,6 +57,7 @@ type EventItem = {
   venue_name: string | null;
   city: string | null;
   agreed_amount: number | null;
+  actual_amount: number | null;
 };
 
 type EventSong = {
@@ -225,6 +226,9 @@ export default function Home() {
   const [newEventVenue, setNewEventVenue] = useState("");
   const [newEventCity, setNewEventCity] = useState("");
   const [newEventAgreedAmount, setNewEventAgreedAmount] = useState("");
+  const [actualAmountInputs, setActualAmountInputs] = useState<
+  Record<string, string>
+>({});
 
   useEffect(() => {
     const checkSession = async () => {
@@ -423,7 +427,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from("events")
       .select(
-        "id, event_type, status, title, event_date, start_time, end_time, venue_name, city, agreed_amount"
+        "id, event_type, status, title, event_date, start_time, end_time, venue_name, city, agreed_amount, actual_amount"
       )
       .eq("band_id", bandId)
       .order("event_date", { ascending: true })
@@ -435,14 +439,25 @@ export default function Home() {
       setSongsByEvent({});
       setOpenSongsEventId(null);
       setNewSongTitle("");
+      setActualAmountInputs({});
       return;
     }
 
-    const eventList = (data ?? []) as EventItem[];
-    setEvents(eventList);
-    await loadAttendanceForEvents(eventList);
-    await loadSongsForEvents(eventList);
-  };
+  const eventList = (data ?? []) as EventItem[];
+
+  const nextActualAmountInputs: Record<string, string> = {};
+  for (const event of eventList) {
+    nextActualAmountInputs[event.id] =
+      event.actual_amount !== null && event.actual_amount !== undefined
+        ? String(event.actual_amount)
+        : "";
+  }
+
+  setEvents(eventList);
+  setActualAmountInputs(nextActualAmountInputs);
+  await loadAttendanceForEvents(eventList);
+  await loadSongsForEvents(eventList);
+
 
   const loadTransactions = async (bandId: string) => {
     const { data, error } = await supabase
@@ -492,6 +507,7 @@ export default function Home() {
       setSongsByEvent({});
       setOpenSongsEventId(null);
       setNewSongTitle("");
+      setActualAmountInputs({});
       setTransactions([]);
       return;
     }
@@ -629,6 +645,7 @@ export default function Home() {
       setSongsByEvent({});
       setOpenSongsEventId(null);
       setNewSongTitle("");
+      setActualAmountInputs({});
       setAttendanceByEvent({});
       setTransactions([]);
       setBandName("");
@@ -816,6 +833,42 @@ export default function Home() {
       setMessage("Samo admin može dodavati termine.");
       return;
     }
+
+  const handleUpdateActualAmount = async (eventId: string) => {
+    if (!myBand || myRole !== "admin") {
+      setMessage("Samo admin može spremati naplaćeni iznos.");
+      return;
+    }
+
+    const rawValue = actualAmountInputs[eventId] ?? "";
+
+    if (rawValue && Number(rawValue) < 0) {
+      setMessage("Naplaćeni iznos ne može biti manji od 0.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({
+          actual_amount: rawValue === "" ? null : Number(rawValue),
+        })
+        .eq("id", eventId);
+
+      if (error) {
+        setMessage("Greška kod spremanja naplaćenog iznosa: " + error.message);
+        return;
+      }
+
+      await loadEvents(myBand.id);
+      setMessage("Naplaćeni iznos je spremljen.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
     if (!newEventTitle.trim()) {
       setMessage("Upiši naziv termina.");
@@ -1316,6 +1369,27 @@ export default function Home() {
                                 </p>
                               )}
 
+                              {event.event_type === "gig" && (
+                                <div className="mt-3 rounded-lg bg-zinc-800 p-3">
+                                  <p className="text-sm text-zinc-300">
+                                    Dogovoreno:{" "}
+                                    <span className="font-semibold text-white">
+                                      {event.agreed_amount !== null
+                                        ? `${Number(event.agreed_amount).toFixed(2)} €`
+                                        : "—"}
+                                    </span>
+                                  </p>
+                                  <p className="mt-1 text-sm text-zinc-300">
+                                    Naplaćeno:{" "}
+                                    <span className="font-semibold text-white">
+                                      {event.actual_amount !== null
+                                        ? `${Number(event.actual_amount).toFixed(2)} €`
+                                        : "—"}
+                                    </span>
+                                  </p>
+                                </div>
+                              )}
+
                               {myRole === "admin" && (
                                 <div className="mt-4">
                                   <label className="mb-2 block text-xs uppercase tracking-wide text-zinc-500">
@@ -1344,6 +1418,40 @@ export default function Home() {
                                       )
                                     )}
                                   </select>
+                                </div>
+                              )}
+
+                              {myRole === "admin" && event.event_type === "gig" && (
+                                <div className="mt-4">
+                                  <label className="mb-2 block text-xs uppercase tracking-wide text-zinc-500">
+                                    Naplaćeno (€)
+                                  </label>
+
+                                  <div className="flex flex-col gap-2 sm:flex-row">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      value={actualAmountInputs[event.id] ?? ""}
+                                      onChange={(e) =>
+                                        setActualAmountInputs((prev) => ({
+                                          ...prev,
+                                          [event.id]: e.target.value,
+                                        }))
+                                      }
+                                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"
+                                      placeholder="Npr. 650.00"
+                                    />
+
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleUpdateActualAmount(event.id)}
+                                      disabled={loading}
+                                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                                    >
+                                      Spremi
+                                    </button>
+                                  </div>
                                 </div>
                               )}
 
