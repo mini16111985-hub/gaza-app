@@ -7,6 +7,11 @@ import InstallAppPrompt from "@/app/components/InstallAppPrompt";
 type AuthMode = "login" | "signup";
 type RoleType = "admin" | "member" | "";
 
+type SimpleProfile = {
+  full_name: string | null;
+  instrument: string | null;
+};
+
 type Profile = {
   id: string;
   full_name: string | null;
@@ -24,26 +29,14 @@ type JoinRequest = {
   id: string;
   user_id: string;
   status: string;
-  profile?: {
-    full_name: string | null;
-    instrument: string | null;
-  } | null;
+  profile?: SimpleProfile | null;
 };
 
 type MemberRow = {
   id: string;
   user_id: string;
   role: string;
-  profiles:
-    | {
-        full_name: string | null;
-        instrument: string | null;
-      }
-    | {
-        full_name: string | null;
-        instrument: string | null;
-      }[]
-    | null;
+  profiles: SimpleProfile | SimpleProfile[] | null;
 };
 
 type EventItem = {
@@ -73,10 +66,7 @@ type AttendanceItem = {
   event_id: string;
   user_id: string;
   attendance_status: "coming" | "not_coming" | string;
-  profile?: {
-    full_name: string | null;
-    instrument: string | null;
-  } | null;
+  profile?: SimpleProfile | null;
 };
 
 type FinancialTransaction = {
@@ -226,9 +216,10 @@ export default function Home() {
   const [newEventVenue, setNewEventVenue] = useState("");
   const [newEventCity, setNewEventCity] = useState("");
   const [newEventAgreedAmount, setNewEventAgreedAmount] = useState("");
+
   const [actualAmountInputs, setActualAmountInputs] = useState<
-  Record<string, string>
->({});
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     const checkSession = async () => {
@@ -255,7 +246,7 @@ export default function Home() {
       .eq("id", profileUserId)
       .single();
 
-    if (!error && data) setProfile(data);
+    if (!error && data) setProfile(data as Profile);
   };
 
   const loadMembers = async (bandId: string) => {
@@ -320,12 +311,12 @@ export default function Home() {
       return;
     }
 
-    const profileMap = new Map(
+    const profileMap = new Map<string, SimpleProfile>(
       (profilesData ?? []).map((p) => [
-        p.id,
+        p.id as string,
         {
-          full_name: p.full_name,
-          instrument: p.instrument,
+          full_name: p.full_name as string | null,
+          instrument: p.instrument as string | null,
         },
       ])
     );
@@ -370,17 +361,17 @@ export default function Home() {
       .select("id, full_name, instrument")
       .in("id", userIds);
 
-    const profileMap = new Map(
+    const profileMap = new Map<string, SimpleProfile>(
       (profilesData ?? []).map((p) => [
-        p.id,
+        p.id as string,
         {
-          full_name: p.full_name,
-          instrument: p.instrument,
+          full_name: p.full_name as string | null,
+          instrument: p.instrument as string | null,
         },
       ])
     );
 
-    const merged = rows.map((row) => ({
+    const merged: AttendanceItem[] = rows.map((row) => ({
       ...row,
       profile: profileMap.get(row.user_id) ?? null,
     }));
@@ -443,21 +434,21 @@ export default function Home() {
       return;
     }
 
-  const eventList = (data ?? []) as EventItem[];
+    const eventList = (data ?? []) as EventItem[];
 
-  const nextActualAmountInputs: Record<string, string> = {};
-  for (const event of eventList) {
-    nextActualAmountInputs[event.id] =
-      event.actual_amount !== null && event.actual_amount !== undefined
-        ? String(event.actual_amount)
-        : "";
-  }
+    const nextActualAmountInputs: Record<string, string> = {};
+    for (const event of eventList) {
+      nextActualAmountInputs[event.id] =
+        event.actual_amount !== null && event.actual_amount !== undefined
+          ? String(event.actual_amount)
+          : "";
+    }
 
-  setEvents(eventList);
-  setActualAmountInputs(nextActualAmountInputs);
-  await loadAttendanceForEvents(eventList);
-  await loadSongsForEvents(eventList);
-
+    setEvents(eventList);
+    setActualAmountInputs(nextActualAmountInputs);
+    await loadAttendanceForEvents(eventList);
+    await loadSongsForEvents(eventList);
+  };
 
   const loadTransactions = async (bandId: string) => {
     const { data, error } = await supabase
@@ -828,12 +819,6 @@ export default function Home() {
     }
   };
 
-  const handleCreateEvent = async () => {
-    if (!myBand || !userId || myRole !== "admin") {
-      setMessage("Samo admin može dodavati termine.");
-      return;
-    }
-
   const handleUpdateActualAmount = async (eventId: string) => {
     if (!myBand || myRole !== "admin") {
       setMessage("Samo admin može spremati naplaćeni iznos.");
@@ -869,6 +854,12 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  const handleCreateEvent = async () => {
+    if (!myBand || !userId || myRole !== "admin") {
+      setMessage("Samo admin može dodavati termine.");
+      return;
+    }
 
     if (!newEventTitle.trim()) {
       setMessage("Upiši naziv termina.");
@@ -1445,7 +1436,9 @@ export default function Home() {
 
                                     <button
                                       type="button"
-                                      onClick={() => void handleUpdateActualAmount(event.id)}
+                                      onClick={() =>
+                                        void handleUpdateActualAmount(event.id)
+                                      }
                                       disabled={loading}
                                       className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-60"
                                     >
@@ -1505,6 +1498,7 @@ export default function Home() {
                                   >
                                     Ne dolazim
                                   </button>
+
                                   <button
                                     type="button"
                                     onClick={() =>
